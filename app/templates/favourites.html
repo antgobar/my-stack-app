@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Home — {{ app_name }}{% endblock %}
+{% block title %}Favourites — {{ app_name }}{% endblock %}
 
 {% block extra_css %}
 <style>
-  /* keep space so the sticky player doesn't overlap last list item */
   body { padding-bottom: 90px; }
 
   #player-bar {
@@ -34,12 +33,12 @@
     border: none;
     padding: 4px 6px;
     line-height: 1;
-    color: #adb5bd;
+    color: #dc3545;
     transition: color .15s, transform .1s;
   }
-  .btn-favourite:hover { color: #dc3545; transform: scale(1.15); }
-  .btn-favourite.is-favourite { color: #dc3545; }
-  .btn-favourite.is-favourite i::before { content: "\f415"; } /* bi-heart-fill */
+  .btn-favourite:hover { color: #adb5bd; transform: scale(1.15); }
+  .btn-favourite.unfavourited { color: #adb5bd; }
+  .btn-favourite.unfavourited i::before { content: "\f415"; } /* revert to outline */
 </style>
 {% endblock %}
 
@@ -47,7 +46,7 @@
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <h1 class="display-6 fw-bold mb-4">
-            <i class="bi bi-music-note-list me-2"></i>Tracks
+            <i class="bi bi-heart-fill me-2 text-danger"></i>Favourites
         </h1>
 
         {% if tracks %}
@@ -77,16 +76,22 @@
                     <div class="fw-semibold text-truncate">{{ track.track_name }}</div>
                     <div class="small text-muted text-truncate">{{ track.artist_name }}</div>
                 </div>
-                <button class="btn-favourite flex-shrink-0{% if track.is_favourite %} is-favourite{% endif %}"
+                <button class="btn-favourite flex-shrink-0"
                         data-track-id="{{ track.id }}"
-                        title="{% if track.is_favourite %}Remove from favourites{% else %}Add to favourites{% endif %}">
-                    <i class="bi bi-heart{% if track.is_favourite %}-fill{% endif %} fs-5"></i>
+                        title="Remove from favourites">
+                    <i class="bi bi-heart-fill fs-5"></i>
                 </button>
             </div>
             {% endfor %}
         </div>
         {% else %}
-        <p class="text-muted">No tracks found.</p>
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-heart display-1 d-block mb-3 opacity-25"></i>
+            <p class="fs-5">No favourites yet.</p>
+            <a href="/" class="btn btn-outline-secondary btn-sm mt-1">
+                <i class="bi bi-music-note-list me-1"></i>Browse tracks
+            </a>
+        </div>
         {% endif %}
     </div>
 </div>
@@ -184,7 +189,6 @@
     if (idx < rows.length - 1) playRow(rows[idx + 1]);
   });
 
-  // spacebar toggles play/pause when a track is loaded
   document.addEventListener('keydown', (e) => {
     if (e.code !== 'Space') return;
     if (['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT'].includes(document.activeElement.tagName)) return;
@@ -201,7 +205,6 @@
     }
   });
 
-  // auto-advance to next track when current track ends
   player.addEventListener('ended', () => {
     const idx = rows.indexOf(activeRow);
     if (idx < rows.length - 1) {
@@ -214,7 +217,7 @@
     }
   });
 
-  // favourite toggle — stop propagation so click doesn't also play the track
+  // un-favouriting from this page hides the row immediately
   document.querySelectorAll('.btn-favourite').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -222,15 +225,27 @@
       const res = await fetch(`/tracks/${trackId}/favourite`, { method: 'POST' });
       if (!res.ok) return;
       const { is_favourite } = await res.json();
-      const icon = btn.querySelector('i');
-      if (is_favourite) {
-        btn.classList.add('is-favourite');
-        icon.className = 'bi bi-heart-fill fs-5';
-        btn.title = 'Remove from favourites';
-      } else {
-        btn.classList.remove('is-favourite');
-        icon.className = 'bi bi-heart fs-5';
-        btn.title = 'Add to favourites';
+      if (!is_favourite) {
+        const row = btn.closest('.track-row');
+        // if this row was playing, clean up
+        if (row === activeRow) {
+          player.pause();
+          player.src = '';
+          activeRow = null;
+          bar.classList.remove('visible');
+        }
+        row.remove();
+        // show empty state if no rows remain
+        if (document.querySelectorAll('.track-row').length === 0) {
+          document.getElementById('track-list').outerHTML = `
+            <div class="text-center py-5 text-muted">
+              <i class="bi bi-heart display-1 d-block mb-3 opacity-25"></i>
+              <p class="fs-5">No favourites yet.</p>
+              <a href="/" class="btn btn-outline-secondary btn-sm mt-1">
+                <i class="bi bi-music-note-list me-1"></i>Browse tracks
+              </a>
+            </div>`;
+        }
       }
     });
   });
