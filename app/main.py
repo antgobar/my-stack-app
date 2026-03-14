@@ -23,8 +23,8 @@ app = FastAPI(
 )
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
-app.mount("/audio", StaticFiles(directory="Audio"), name="audio")
-app.mount("/covers", StaticFiles(directory="AlbumCovers"), name="covers")
+app.mount("/audio", StaticFiles(directory="Audio", check_dir=False), name="audio")
+app.mount("/covers", StaticFiles(directory="AlbumCovers", check_dir=False), name="covers")
 
 app.include_router(health.router)
 app.include_router(tracks.router)
