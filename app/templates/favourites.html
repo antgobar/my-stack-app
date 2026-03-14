@@ -39,6 +39,17 @@
   .btn-favourite:hover { color: #adb5bd; transform: scale(1.15); }
   .btn-favourite.unfavourited { color: #adb5bd; }
   .btn-favourite.unfavourited i::before { content: "\f415"; } /* revert to outline */
+
+  .btn-queue {
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    line-height: 1;
+    color: #adb5bd;
+    transition: color .15s, transform .1s;
+  }
+  .btn-queue:hover { color: #0d6efd; transform: scale(1.15); }
+  .btn-queue.queued { color: #0d6efd; }
 </style>
 {% endblock %}
 
@@ -56,7 +67,8 @@
                  data-src="/audio/{{ track.file_path }}"
                  data-title="{{ track.track_name }}"
                  data-artist="{{ track.artist_name }}"
-                 data-cover="{% if track.album_cover_path %}/covers/{{ track.album_cover_path }}{% endif %}">
+                 data-cover="{% if track.album_cover_path %}/covers/{{ track.album_cover_path }}{% endif %}"
+                 data-track-id="{{ track.id }}">
                 <div class="flex-shrink-0 position-relative" style="width:48px;height:48px;">
                     {% if track.album_cover_path %}
                     <img src="/covers/{{ track.album_cover_path }}" alt="cover"
@@ -76,6 +88,10 @@
                     <div class="fw-semibold text-truncate">{{ track.track_name }}</div>
                     <div class="small text-muted text-truncate">{{ track.artist_name }}</div>
                 </div>
+                <button class="btn-queue flex-shrink-0" data-track-id="{{ track.id }}"
+                        title="Add to queue">
+                    <i class="bi bi-collection-play fs-5"></i>
+                </button>
                 <button class="btn-favourite flex-shrink-0"
                         data-track-id="{{ track.id }}"
                         title="Remove from favourites">
@@ -215,6 +231,22 @@
       activeRow = null;
       bar.classList.remove('visible');
     }
+  });
+
+  document.querySelectorAll('.btn-queue').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const trackId = btn.dataset.trackId;
+      const res = await fetch(`/queue/${trackId}`, { method: 'POST' });
+      if (!res.ok) return;
+      const icon = btn.querySelector('i');
+      icon.className = 'bi bi-check-circle fs-5';
+      btn.classList.add('queued');
+      setTimeout(() => {
+        icon.className = 'bi bi-collection-play fs-5';
+        btn.classList.remove('queued');
+      }, 1200);
+    });
   });
 
   // un-favouriting from this page hides the row immediately

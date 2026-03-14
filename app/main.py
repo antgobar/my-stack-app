@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import create_db_and_tables, seed_tracks
-from app.routers import health, pages, tracks
+from app.routers import health, pages, queue, tracks
 
 
 @asynccontextmanager
@@ -28,4 +28,5 @@ app.mount("/covers", StaticFiles(directory="AlbumCovers"), name="covers")
 
 app.include_router(health.router)
 app.include_router(tracks.router)
+app.include_router(queue.router)
 app.include_router(pages.router)

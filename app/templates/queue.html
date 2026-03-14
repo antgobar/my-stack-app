@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Queue — {{ app_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { padding-bottom: 20px; }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    line-height: 1;
+    color: #adb5bd;
+    transition: color .15s, transform .1s;
+  }
+  .btn-remove:hover { color: #dc3545; transform: scale(1.15); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-4 gap-3">
+            <h1 class="display-6 fw-bold mb-0">
+                <i class="bi bi-collection-play me-2"></i>Queue
+            </h1>
+            {% if queue %}
+            <button id="btn-clear-queue" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash me-1"></i>Clear Queue
+            </button>
+            {% endif %}
+        </div>
+
+        {% if queue %}
+        <a href="/?queue=1" class="btn btn-primary btn-lg w-100 mb-4 py-3 fs-5 fw-semibold">
+            <i class="bi bi-play-circle-fill me-2"></i>Play from Queue
+        </a>
+        {% endif %}
+
+        {% if queue %}
+        <div class="list-group shadow-sm" id="queue-list">
+            {% for entry in queue %}
+            <div class="list-group-item d-flex align-items-center gap-3 py-3"
+                 data-item-id="{{ entry.item_id }}">
+                <div class="flex-shrink-0" style="width:48px;height:48px;">
+                    {% if entry.track.album_cover_path %}
+                    <img src="/covers/{{ entry.track.album_cover_path }}" alt="cover"
+                         class="rounded" style="width:48px;height:48px;object-fit:cover;">
+                    {% else %}
+                    <div class="rounded bg-secondary d-flex align-items-center justify-content-center"
+                         style="width:48px;height:48px;">
+                        <i class="bi bi-music-note text-white"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="flex-grow-1 min-width-0">
+                    <div class="fw-semibold text-truncate">{{ entry.track.track_name }}</div>
+                    <div class="small text-muted text-truncate">{{ entry.track.artist_name }}</div>
+                </div>
+                <div class="text-muted small flex-shrink-0 me-2">
+                    {{ entry.added_at.strftime('%H:%M') }}
+                </div>
+                <button class="btn-remove flex-shrink-0" data-item-id="{{ entry.item_id }}"
+                        title="Remove from queue">
+                    <i class="bi bi-x-circle fs-5"></i>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div id="empty-state" class="text-center py-5 text-muted">
+            <i class="bi bi-collection-play display-1 d-block mb-3 opacity-25"></i>
+            <p class="fs-5">Your queue is empty.</p>
+            <a href="/" class="btn btn-outline-secondary btn-sm mt-1">
+                <i class="bi bi-music-note-list me-1"></i>Browse tracks
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll('.btn-remove').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const itemId = btn.dataset.itemId;
+      const res = await fetch(`/queue/${itemId}`, { method: 'DELETE' });
+      if (!res.ok) return;
+      const row = btn.closest('[data-item-id]');
+      row.remove();
+      if (document.querySelectorAll('#queue-list [data-item-id]').length === 0) {
+        document.getElementById('queue-list').outerHTML = `
+          <div id="empty-state" class="text-center py-5 text-muted">
+            <i class="bi bi-collection-play display-1 d-block mb-3 opacity-25"></i>
+            <p class="fs-5">Your queue is empty.</p>
+            <a href="/" class="btn btn-outline-secondary btn-sm mt-1">
+              <i class="bi bi-music-note-list me-1"></i>Browse tracks
+            </a>
+          </div>`;
+        const clearBtn = document.getElementById('btn-clear-queue');
+        if (clearBtn) clearBtn.remove();
+      }
+    });
+  });
+
+  const clearBtn = document.getElementById('btn-clear-queue');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', async () => {
+      const res = await fetch('/queue/clear', { method: 'DELETE' });
+      if (!res.ok) return;
+      const list = document.getElementById('queue-list');
+      if (list) {
+        list.outerHTML = `
+          <div id="empty-state" class="text-center py-5 text-muted">
+            <i class="bi bi-collection-play display-1 d-block mb-3 opacity-25"></i>
+            <p class="fs-5">Your queue is empty.</p>
+            <a href="/" class="btn btn-outline-secondary btn-sm mt-1">
+              <i class="bi bi-music-note-list me-1"></i>Browse tracks
+            </a>
+          </div>`;
+      }
+      clearBtn.remove();
+    });
+  }
+</script>
+{% endblock %}

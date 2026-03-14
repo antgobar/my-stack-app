@@ -8,7 +8,7 @@ from sqlmodel.pool import StaticPool
 
 from app.database import get_session
 from app.main import app
-from app.models import Track
+from app.models import QueueItem, Track
 
 
 @pytest.fixture(name="engine")
@@ -61,5 +61,19 @@ def track_factory_fixture(session: Session):
         session.commit()
         session.refresh(track)
         return track
+
+    return _create
+
+
+@pytest.fixture(name="queue_item_factory")
+def queue_item_factory_fixture(session: Session):
+    """Insert QueueItem rows into the test session and return them."""
+
+    def _create(track_id: int, **kwargs) -> QueueItem:
+        item = QueueItem(track_id=track_id, **kwargs)
+        session.add(item)
+        session.commit()
+        session.refresh(item)
+        return item
 
     return _create

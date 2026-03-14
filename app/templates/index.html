@@ -40,6 +40,19 @@
   .btn-favourite:hover { color: #dc3545; transform: scale(1.15); }
   .btn-favourite.is-favourite { color: #dc3545; }
   .btn-favourite.is-favourite i::before { content: "\f415"; } /* bi-heart-fill */
+
+  .btn-queue {
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    line-height: 1;
+    color: #adb5bd;
+    transition: color .15s, transform .1s;
+  }
+  .btn-queue:hover { color: #0d6efd; transform: scale(1.15); }
+  .btn-queue.queued { color: #0d6efd; }
+
+  #btn-queue-mode.queue-active { color: #0d6efd; border-color: #0d6efd; }
 </style>
 {% endblock %}
 
@@ -61,7 +74,8 @@
                  data-src="/audio/{{ track.file_path }}"
                  data-title="{{ track.track_name }}"
                  data-artist="{{ track.artist_name }}"
-                 data-cover="{% if track.album_cover_path %}/covers/{{ track.album_cover_path }}{% endif %}">
+                 data-cover="{% if track.album_cover_path %}/covers/{{ track.album_cover_path }}{% endif %}"
+                 data-track-id="{{ track.id }}">
                 <div class="flex-shrink-0 position-relative" style="width:48px;height:48px;">
                     {% if track.album_cover_path %}
                     <img src="/covers/{{ track.album_cover_path }}" alt="cover"
@@ -81,6 +95,10 @@
                     <div class="fw-semibold text-truncate">{{ track.track_name }}</div>
                     <div class="small text-muted text-truncate">{{ track.artist_name }}</div>
                 </div>
+                <button class="btn-queue flex-shrink-0" data-track-id="{{ track.id }}"
+                        title="Add to queue">
+                    <i class="bi bi-collection-play fs-5"></i>
+                </button>
                 <button class="btn-favourite flex-shrink-0{% if track.is_favourite %} is-favourite{% endif %}"
                         data-track-id="{{ track.id }}"
                         title="{% if track.is_favourite %}Remove from favourites{% else %}Add to favourites{% endif %}">
@@ -112,25 +130,99 @@
         <button id="btn-next" class="btn btn-sm btn-outline-light" title="Next track">
             <i class="bi bi-skip-end-fill"></i>
         </button>
+        <button id="btn-queue-mode" class="btn btn-sm btn-outline-light" title="Play from queue">
+            <i class="bi bi-list-ol"></i>
+        </button>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  const player    = document.getElementById('audio-player');
-  const bar       = document.getElementById('player-bar');
-  const nowTitle  = document.getElementById('now-title');
-  const nowArtist = document.getElementById('now-artist');
-  const nowCover  = document.getElementById('now-cover');
-  const btnPrev   = document.getElementById('btn-prev');
-  const btnNext   = document.getElementById('btn-next');
-  const trackList = document.getElementById('track-list');
-  const noResults = document.getElementById('no-results');
+  const player      = document.getElementById('audio-player');
+  const bar         = document.getElementById('player-bar');
+  const nowTitle    = document.getElementById('now-title');
+  const nowArtist   = document.getElementById('now-artist');
+  const nowCover    = document.getElementById('now-cover');
+  const btnPrev     = document.getElementById('btn-prev');
+  const btnNext     = document.getElementById('btn-next');
+  const btnQueueMode = document.getElementById('btn-queue-mode');
+  const trackList   = document.getElementById('track-list');
+  const noResults   = document.getElementById('no-results');
   const searchInput = document.getElementById('search-input');
 
   let rows      = Array.from(document.querySelectorAll('.track-row'));
   let activeRow = null;
+
+  // Queue mode state
+  let queueMode   = false;
+  let queueTracks = []; // array of {item_id, track_id, track_name, artist_name, file_path, album_cover_path}
+  let queueIndex  = -1;
+
+  async function loadQueue() {
+    const res = await fetch('/queue/items');
+    if (!res.ok) return [];
+    return await res.json();
+  }
+
+  async function popQueueItem(itemId) {
+    await fetch(`/queue/${itemId}`, { method: 'DELETE' });
+  }
+
+  async function activateQueueMode() {
+    queueMode = true;
+    btnQueueMode.classList.add('queue-active');
+    btnQueueMode.title = 'Playing from queue (click to switch to normal)';
+    queueTracks = await loadQueue();
+    queueIndex = -1;
+    if (queueTracks.length > 0) {
+      playQueueIndex(0);
+    }
+  }
+
+  btnQueueMode.addEventListener('click', async () => {
+    if (queueMode) {
+      queueMode = false;
+      btnQueueMode.classList.remove('queue-active');
+      btnQueueMode.title = 'Play from queue';
+    } else {
+      await activateQueueMode();
+    }
+  });
+
+  function playQueueIndex(idx) {
+    if (idx < 0 || idx >= queueTracks.length) return;
+    queueIndex = idx;
+    const qt = queueTracks[idx];
+
+    // clear active track row highlight
+    if (activeRow) {
+      activeRow.classList.remove('active');
+      setIcon(activeRow, false);
+      activeRow = null;
+    }
+
+    player.src = `/audio/${qt.file_path}`;
+    player.play();
+
+    nowTitle.textContent  = qt.track_name;
+    nowArtist.textContent = qt.artist_name;
+    if (qt.album_cover_path) {
+      nowCover.src = `/covers/${qt.album_cover_path}`;
+      nowCover.style.display = 'block';
+    } else {
+      nowCover.style.display = 'none';
+    }
+    bar.classList.add('visible');
+
+    btnPrev.disabled = idx === 0;
+    btnNext.disabled = idx >= queueTracks.length - 1;
+  }
+
+  // Auto-activate queue mode if navigated here with ?queue=1
+  if (new URLSearchParams(window.location.search).get('queue') === '1') {
+    activateQueueMode();
+  }
 
   function setIcon(row, playing) {
     row.querySelector('.play-icon i').className = playing ? 'bi bi-pause-circle fs-4' : 'bi bi-play-circle fs-4';
@@ -178,7 +270,8 @@
            data-src="/audio/${t.file_path}"
            data-title="${t.track_name}"
            data-artist="${t.artist_name}"
-           data-cover="${t.album_cover_path ? '/covers/' + t.album_cover_path : ''}">
+           data-cover="${t.album_cover_path ? '/covers/' + t.album_cover_path : ''}"
+           data-track-id="${t.id}">
         <div class="flex-shrink-0 position-relative" style="width:48px;height:48px;">
           ${coverImg}
           <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center
@@ -190,6 +283,9 @@
           <div class="fw-semibold text-truncate">${t.track_name}</div>
           <div class="small text-muted text-truncate">${t.artist_name}</div>
         </div>
+        <button class="btn-queue flex-shrink-0" data-track-id="${t.id}" title="Add to queue">
+          <i class="bi bi-collection-play fs-5"></i>
+        </button>
         <button class="btn-favourite flex-shrink-0${favClass}"
                 data-track-id="${t.id}"
                 title="${favTitle}">
@@ -215,7 +311,26 @@
           }
           return;
         }
+        queueMode = false;
+        btnQueueMode.classList.remove('queue-active');
+        btnQueueMode.title = 'Play from queue';
         playRow(row);
+      });
+    });
+
+    document.querySelectorAll('.btn-queue').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const trackId = btn.dataset.trackId;
+        const res = await fetch(`/queue/${trackId}`, { method: 'POST' });
+        if (!res.ok) return;
+        const icon = btn.querySelector('i');
+        icon.className = 'bi bi-check-circle fs-5';
+        btn.classList.add('queued');
+        setTimeout(() => {
+          icon.className = 'bi bi-collection-play fs-5';
+          btn.classList.remove('queued');
+        }, 1200);
       });
     });
 
@@ -257,13 +372,24 @@
   attachHandlers();
 
   btnPrev.addEventListener('click', () => {
-    const idx = rows.indexOf(activeRow);
-    if (idx > 0) playRow(rows[idx - 1]);
+    if (queueMode) {
+      if (queueIndex > 0) playQueueIndex(queueIndex - 1);
+    } else {
+      const idx = rows.indexOf(activeRow);
+      if (idx > 0) playRow(rows[idx - 1]);
+    }
   });
 
   btnNext.addEventListener('click', () => {
-    const idx = rows.indexOf(activeRow);
-    if (idx < rows.length - 1) playRow(rows[idx + 1]);
+    if (queueMode) {
+      if (queueIndex < queueTracks.length - 1) {
+        popQueueItem(queueTracks[queueIndex].item_id);
+        playQueueIndex(queueIndex + 1);
+      }
+    } else {
+      const idx = rows.indexOf(activeRow);
+      if (idx < rows.length - 1) playRow(rows[idx + 1]);
+    }
   });
 
   // spacebar toggles play/pause when a track is loaded
@@ -271,28 +397,39 @@
     if (e.code !== 'Space') return;
     if (['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT'].includes(document.activeElement.tagName)) return;
     e.preventDefault();
-    if (!activeRow) return;
+    if (!activeRow && !queueMode) return;
     if (player.paused) {
       player.play();
-      setIcon(activeRow, true);
-      activeRow.classList.add('active');
+      if (activeRow) { setIcon(activeRow, true); activeRow.classList.add('active'); }
     } else {
       player.pause();
-      setIcon(activeRow, false);
-      activeRow.classList.remove('active');
+      if (activeRow) { setIcon(activeRow, false); activeRow.classList.remove('active'); }
     }
   });
 
-  // auto-advance to next track when current track ends
+  // auto-advance when current track ends
   player.addEventListener('ended', () => {
-    const idx = rows.indexOf(activeRow);
-    if (idx < rows.length - 1) {
-      playRow(rows[idx + 1]);
+    if (queueMode) {
+      popQueueItem(queueTracks[queueIndex].item_id);
+      const next = queueIndex + 1;
+      if (next < queueTracks.length) {
+        playQueueIndex(next);
+      } else {
+        queueMode = false;
+        btnQueueMode.classList.remove('queue-active');
+        btnQueueMode.title = 'Play from queue';
+        bar.classList.remove('visible');
+      }
     } else {
-      setIcon(activeRow, false);
-      activeRow.classList.remove('active');
-      activeRow = null;
-      bar.classList.remove('visible');
+      const idx = rows.indexOf(activeRow);
+      if (idx < rows.length - 1) {
+        playRow(rows[idx + 1]);
+      } else {
+        setIcon(activeRow, false);
+        activeRow.classList.remove('active');
+        activeRow = null;
+        bar.classList.remove('visible');
+      }
     }
   });
 
