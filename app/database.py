@@ -30,7 +30,15 @@ def seed_tracks() -> None:
             parts = f.stem.split(" - ", 1)
             artist = parts[0] if len(parts) == 2 else "Unknown"
             title = parts[1] if len(parts) == 2 else parts[0]
-            session.add(Track(track_name=title, artist_name=artist, file_path=file_path))
+
+            cover_path = None
+            for ext in (".jpg", ".jpeg", ".png", ".webp"):
+                candidate = AUDIO_DIR / (f.stem + ext)
+                if candidate.exists():
+                    cover_path = candidate.name
+                    break
+
+            session.add(Track(track_name=title, artist_name=artist, file_path=file_path, album_cover_path=cover_path))
 
         session.commit()
 
