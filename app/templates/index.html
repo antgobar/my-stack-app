@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Home — {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 text-center py-5">
+        <h1 class="display-5 fw-bold mb-3">MY Stack App</h1>
+        <p class="lead text-muted mb-4">
+            FastAPI · SQLModel · Postgres · Redis · Bootstrap 5
+        </p>
+        <div class="d-flex gap-2 justify-content-center">
+            <a href="/docs" class="btn btn-primary">
+                <i class="bi bi-file-earmark-code me-1"></i> API Docs
+            </a>
+            <a href="/health" class="btn btn-outline-secondary">
+                <i class="bi bi-heart-pulse me-1"></i> Health Check
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

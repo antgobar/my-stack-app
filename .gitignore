@@ -15,9 +15,6 @@ build/
 # Environment
 .env
 
-# Alembic
-alembic/versions/*.pyc
-
 # IDE
 .idea/
 *.swp
@@ -27,9 +24,5 @@ alembic/versions/*.pyc
 .DS_Store
 Thumbs.db
 
-# CDK
-infrastructure/node_modules/
-infrastructure/dist/
-infrastructure/cdk.out/
-infrastructure/*.js
-infrastructure/*.d.ts
+# Data
+Audio/

@@ -1,0 +1,37 @@
+---
+description: AWS CDK (TypeScript) stack conventions and free-tier defaults
+globs: infrastructure/**/*.ts
+alwaysApply: false
+---
+
+# AWS CDK Conventions
+
+## Free-Tier Defaults
+- EC2: `t2.micro` (750 hrs/month free for 12 months)
+- RDS: `db.t3.micro` Postgres, single-AZ, no Multi-AZ
+- ElastiCache: `cache.t3.micro` Redis, single node
+- Always set `removalPolicy: RemovalPolicy.DESTROY` for non-production resources
+
+## Stack Patterns
+```typescript
+// Always tag all resources
+Tags.of(this).add('Project', 'my-stack-app');
+Tags.of(this).add('Environment', props.env ?? 'dev');
+```
+
+## Resource Naming
+- Use `id` prefixes matching the stack name: `MyStackAppVpc`, `MyStackAppDb`
+- Use `this.stackName` for dynamic naming to avoid hardcoded names
+
+## Security
+- Never hardcode secrets — use `aws-cdk-lib/aws-secretsmanager` or SSM Parameter Store
+- Security groups: allow only required ports (8000 for app, 5432 for RDS internal only)
+- RDS must NOT be publicly accessible: `publiclyAccessible: false`
+
+## Deployment
+```bash
+cd infrastructure
+npm run cdk deploy        # deploy stack
+npm run cdk diff          # preview changes
+npm run cdk destroy       # tear down (saves cost)
+```

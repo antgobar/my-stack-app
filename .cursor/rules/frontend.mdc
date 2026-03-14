@@ -1,0 +1,41 @@
+---
+description: Jinja2 template and Bootstrap 5 frontend conventions
+globs: ["**/*.html", "**/*.js"]
+alwaysApply: false
+---
+
+# Frontend Patterns
+
+## Jinja2 Templates
+- All templates extend `base.html` via `{% extends "base.html" %}`
+- Use `{% block content %}` for page-specific content
+- Pass data via `TemplateResponse` — never inline JSON in templates
+
+```python
+# In router
+from fastapi.templating import Jinja2Templates
+templates = Jinja2Templates(directory="app/templates")
+
+@router.get("/")
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request, "items": items})
+```
+
+## Bootstrap 5 Conventions
+- Use Bootstrap utility classes; avoid custom CSS unless necessary
+- Forms: use `form-control`, `form-label`, `mb-3` pattern
+- Alerts: `alert alert-danger/success/info` for flash messages
+- Layout: `container` > `row` > `col-*` grid
+
+```html
+<!-- Standard form field -->
+<div class="mb-3">
+  <label for="name" class="form-label">Name</label>
+  <input type="text" class="form-control" id="name" name="name">
+</div>
+```
+
+## HTMX (if needed for interactivity)
+- Prefer HTMX over full JS frameworks for partial page updates
+- Use `hx-get`, `hx-post`, `hx-target`, `hx-swap` attributes
+- Return HTML fragments from endpoints when responding to HTMX requests
