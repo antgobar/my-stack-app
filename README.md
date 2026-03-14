@@ -14,6 +14,10 @@ A Spotify clone built with FastAPI, Postgres, and Redis.
 | Cache | Redis 7 |
 | Package manager | uv |
 
+## Audio Files
+
+> **Note:** Add your MP3 files to a folder named `Audio/` in the project root before starting the app. Files should be named in the format `Artist - Title.mp3`. This folder is not included in the repository.
+
 ## Local Development
 
 ### Prerequisites
