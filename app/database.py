@@ -19,23 +19,27 @@ def create_db_and_tables() -> None:
     SQLModel.metadata.create_all(engine)
 
 
-def seed_tracks() -> None:
+def seed_tracks(
+    audio_dir: Path = AUDIO_DIR,
+    covers_dir: Path = COVERS_DIR,
+    session: Session | None = None,
+) -> None:
     from app.models import Track  # local import to avoid circular deps at module load
 
     covers = (
-        sorted(COVERS_DIR.glob("*.png"))
-        + sorted(COVERS_DIR.glob("*.jpg"))
-        + sorted(COVERS_DIR.glob("*.jpeg"))
+        sorted(covers_dir.glob("*.png"))
+        + sorted(covers_dir.glob("*.jpg"))
+        + sorted(covers_dir.glob("*.jpeg"))
     )
 
-    with Session(engine) as session:
-        for f in sorted(AUDIO_DIR.glob("*.mp3")):
+    def _run(s: Session) -> None:
+        for f in sorted(audio_dir.glob("*.mp3")):
             file_path = f.name
-            existing = session.exec(select(Track).where(Track.file_path == file_path)).first()
+            existing = s.exec(select(Track).where(Track.file_path == file_path)).first()
 
             cover_path = None
             for ext in (".jpg", ".jpeg", ".png", ".webp"):
-                candidate = AUDIO_DIR / (f.stem + ext)
+                candidate = audio_dir / (f.stem + ext)
                 if candidate.exists():
                     cover_path = candidate.name
                     break
@@ -46,14 +50,14 @@ def seed_tracks() -> None:
             if existing:
                 if existing.album_cover_path is None and cover_path:
                     existing.album_cover_path = cover_path
-                    session.add(existing)
+                    s.add(existing)
                 continue
 
             parts = f.stem.split(" - ", 1)
             artist = parts[0] if len(parts) == 2 else "Unknown"
             title = parts[1] if len(parts) == 2 else parts[0]
 
-            session.add(
+            s.add(
                 Track(
                     track_name=title,
                     artist_name=artist,
@@ -62,7 +66,13 @@ def seed_tracks() -> None:
                 )
             )
 
-        session.commit()
+        s.commit()
+
+    if session is not None:
+        _run(session)
+    else:
+        with Session(engine) as s:
+            _run(s)
 
 
 def get_session() -> Generator[Session]:
