@@ -46,9 +46,13 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-8">
-        <h1 class="display-6 fw-bold mb-4">
-            <i class="bi bi-music-note-list me-2"></i>Tracks
-        </h1>
+        <div class="d-flex align-items-center justify-content-between mb-4 gap-3">
+            <h1 class="display-6 fw-bold mb-0">
+                <i class="bi bi-music-note-list me-2"></i>Tracks
+            </h1>
+            <input id="search-input" type="search" class="form-control w-auto"
+                   placeholder="Search tracks or artists…" style="min-width:220px;">
+        </div>
 
         {% if tracks %}
         <div class="list-group shadow-sm" id="track-list">
@@ -88,6 +92,7 @@
         {% else %}
         <p class="text-muted">No tracks found.</p>
         {% endif %}
+        <p id="no-results" class="text-muted" style="display:none;">No tracks match your search.</p>
     </div>
 </div>
 
@@ -120,8 +125,12 @@
   const nowCover  = document.getElementById('now-cover');
   const btnPrev   = document.getElementById('btn-prev');
   const btnNext   = document.getElementById('btn-next');
-  const rows      = Array.from(document.querySelectorAll('.track-row'));
-  let activeRow   = null;
+  const trackList = document.getElementById('track-list');
+  const noResults = document.getElementById('no-results');
+  const searchInput = document.getElementById('search-input');
+
+  let rows      = Array.from(document.querySelectorAll('.track-row'));
+  let activeRow = null;
 
   function setIcon(row, playing) {
     row.querySelector('.play-icon i').className = playing ? 'bi bi-pause-circle fs-4' : 'bi bi-play-circle fs-4';
@@ -156,23 +165,96 @@
     btnNext.disabled = rows.indexOf(row) === rows.length - 1;
   }
 
-  rows.forEach(row => {
-    row.addEventListener('click', () => {
-      if (row === activeRow) {
-        if (player.paused) {
-          player.play();
-          setIcon(row, true);
-          row.classList.add('active');
-        } else {
-          player.pause();
-          setIcon(row, false);
-          row.classList.remove('active');
+  function renderTrackHTML(t) {
+    const coverImg = t.album_cover_path
+      ? `<img src="/covers/${t.album_cover_path}" alt="cover" class="rounded" style="width:48px;height:48px;object-fit:cover;">`
+      : `<div class="rounded bg-secondary d-flex align-items-center justify-content-center" style="width:48px;height:48px;"><i class="bi bi-music-note text-white"></i></div>`;
+    const favClass = t.is_favourite ? ' is-favourite' : '';
+    const favIcon  = t.is_favourite ? 'bi-heart-fill' : 'bi-heart';
+    const favTitle = t.is_favourite ? 'Remove from favourites' : 'Add to favourites';
+    const activeClass = activeRow && activeRow.dataset.src === `/audio/${t.file_path}` ? ' active' : '';
+    return `
+      <div class="list-group-item list-group-item-action track-row d-flex align-items-center gap-3 py-3${activeClass}"
+           data-src="/audio/${t.file_path}"
+           data-title="${t.track_name}"
+           data-artist="${t.artist_name}"
+           data-cover="${t.album_cover_path ? '/covers/' + t.album_cover_path : ''}">
+        <div class="flex-shrink-0 position-relative" style="width:48px;height:48px;">
+          ${coverImg}
+          <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center
+                      rounded play-icon text-white" style="background:rgba(0,0,0,0.4);opacity:0;transition:opacity .15s;">
+            <i class="${activeClass ? 'bi bi-pause-circle fs-4' : 'bi bi-play-circle fs-4'}"></i>
+          </div>
+        </div>
+        <div class="flex-grow-1 min-width-0">
+          <div class="fw-semibold text-truncate">${t.track_name}</div>
+          <div class="small text-muted text-truncate">${t.artist_name}</div>
+        </div>
+        <button class="btn-favourite flex-shrink-0${favClass}"
+                data-track-id="${t.id}"
+                title="${favTitle}">
+          <i class="bi ${favIcon} fs-5"></i>
+        </button>
+      </div>`;
+  }
+
+  function attachHandlers() {
+    rows = Array.from(document.querySelectorAll('.track-row'));
+
+    rows.forEach(row => {
+      row.addEventListener('click', () => {
+        if (row === activeRow) {
+          if (player.paused) {
+            player.play();
+            setIcon(row, true);
+            row.classList.add('active');
+          } else {
+            player.pause();
+            setIcon(row, false);
+            row.classList.remove('active');
+          }
+          return;
         }
-        return;
-      }
-      playRow(row);
+        playRow(row);
+      });
     });
-  });
+
+    document.querySelectorAll('.btn-favourite').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const trackId = btn.dataset.trackId;
+        const res = await fetch(`/tracks/${trackId}/favourite`, { method: 'POST' });
+        if (!res.ok) return;
+        const { is_favourite } = await res.json();
+        const icon = btn.querySelector('i');
+        if (is_favourite) {
+          btn.classList.add('is-favourite');
+          icon.className = 'bi bi-heart-fill fs-5';
+          btn.title = 'Remove from favourites';
+        } else {
+          btn.classList.remove('is-favourite');
+          icon.className = 'bi bi-heart fs-5';
+          btn.title = 'Add to favourites';
+        }
+      });
+    });
+
+    // restore active row reference to the new DOM node
+    if (activeRow) {
+      const activeSrc = activeRow.dataset.src;
+      activeRow = rows.find(r => r.dataset.src === activeSrc) || null;
+      if (activeRow) {
+        activeRow.classList.add('active');
+        setIcon(activeRow, !player.paused);
+      }
+    }
+
+    btnPrev.disabled = !activeRow || rows.indexOf(activeRow) === 0;
+    btnNext.disabled = !activeRow || rows.indexOf(activeRow) === rows.length - 1;
+  }
+
+  // initial handler attachment
+  attachHandlers();
 
   btnPrev.addEventListener('click', () => {
     const idx = rows.indexOf(activeRow);
@@ -214,25 +296,22 @@
     }
   });
 
-  // favourite toggle — stop propagation so click doesn't also play the track
-  document.querySelectorAll('.btn-favourite').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const trackId = btn.dataset.trackId;
-      const res = await fetch(`/tracks/${trackId}/favourite`, { method: 'POST' });
+  // search — debounced fetch to backend
+  let searchTimer = null;
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(async () => {
+      const q = searchInput.value.trim();
+      const res = await fetch(`/tracks/search?q=${encodeURIComponent(q)}`);
       if (!res.ok) return;
-      const { is_favourite } = await res.json();
-      const icon = btn.querySelector('i');
-      if (is_favourite) {
-        btn.classList.add('is-favourite');
-        icon.className = 'bi bi-heart-fill fs-5';
-        btn.title = 'Remove from favourites';
-      } else {
-        btn.classList.remove('is-favourite');
-        icon.className = 'bi bi-heart fs-5';
-        btn.title = 'Add to favourites';
+      const tracks = await res.json();
+
+      if (trackList) {
+        trackList.innerHTML = tracks.map(renderTrackHTML).join('');
+        noResults.style.display = tracks.length === 0 ? 'block' : 'none';
+        attachHandlers();
       }
-    });
+    }, 300);
   });
 </script>
 {% endblock %}

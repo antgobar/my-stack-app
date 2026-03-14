@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import or_
 from sqlmodel import Session, select
 
 from app.config import settings
@@ -43,6 +44,21 @@ async def index(request: Request):
         "index.html",
         {"request": request, "app_name": settings.app_name, "tracks": tracks},
     )
+
+
+@app.get("/tracks/search")
+async def search_tracks(q: str = "") -> list[dict]:
+    with Session(engine) as session:
+        pattern = f"%{q}%"
+        tracks = session.exec(
+            select(Track).where(
+                or_(
+                    Track.track_name.ilike(pattern),
+                    Track.artist_name.ilike(pattern),
+                )
+            )
+        ).all()
+    return [t.model_dump() for t in tracks]
 
 
 @app.post("/tracks/{track_id}/favourite")
