@@ -2,6 +2,35 @@
 
 {% block title %}Home — {{ app_name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+  /* keep space so the sticky player doesn't overlap last list item */
+  body { padding-bottom: 90px; }
+
+  #player-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 1050;
+    background: #212529;
+    color: #fff;
+    padding: 10px 20px;
+    display: none;
+    align-items: center;
+    gap: 16px;
+    border-top: 1px solid #444;
+  }
+
+  #player-bar.visible { display: flex; }
+
+  #player-bar audio { flex: 1; min-width: 0; }
+
+  .track-row { cursor: pointer; }
+  .track-row.active { background-color: #e8f4ff !important; }
+  .track-row .play-icon { transition: color .15s; }
+  .track-row:hover .play-icon { color: #0d6efd !important; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-8">
@@ -10,11 +39,14 @@
         </h1>
 
         {% if tracks %}
-        <div class="list-group shadow-sm">
+        <div class="list-group shadow-sm" id="track-list">
             {% for track in tracks %}
-            <div class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3">
-                <div class="flex-shrink-0 text-secondary fs-4">
-                    <i class="bi bi-music-note-beamed"></i>
+            <div class="list-group-item list-group-item-action track-row d-flex align-items-center gap-3 py-3"
+                 data-src="/audio/{{ track.filename }}"
+                 data-title="{{ track.title }}"
+                 data-artist="{{ track.artist }}">
+                <div class="flex-shrink-0 text-secondary fs-4 play-icon">
+                    <i class="bi bi-play-circle"></i>
                 </div>
                 <div class="flex-grow-1 min-width-0">
                     <div class="fw-semibold text-truncate">{{ track.title }}</div>
@@ -28,4 +60,57 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Sticky player bar -->
+<div id="player-bar">
+    <div class="flex-shrink-0">
+        <div id="now-title" class="fw-semibold small text-truncate" style="max-width:200px"></div>
+        <div id="now-artist" class="text-muted small text-truncate" style="max-width:200px"></div>
+    </div>
+    <audio id="audio-player" controls></audio>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const player  = document.getElementById('audio-player');
+  const bar     = document.getElementById('player-bar');
+  const nowTitle  = document.getElementById('now-title');
+  const nowArtist = document.getElementById('now-artist');
+  let activeRow = null;
+
+  document.querySelectorAll('.track-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const src    = row.dataset.src;
+      const title  = row.dataset.title;
+      const artist = row.dataset.artist;
+
+      // highlight active row
+      if (activeRow) {
+        activeRow.classList.remove('active');
+        activeRow.querySelector('.play-icon i').className = 'bi bi-play-circle';
+      }
+      row.classList.add('active');
+      row.querySelector('.play-icon i').className = 'bi bi-pause-circle';
+      activeRow = row;
+
+      // load and play
+      player.src = src;
+      player.play();
+
+      nowTitle.textContent  = title;
+      nowArtist.textContent = artist;
+      bar.classList.add('visible');
+    });
+  });
+
+  // sync icon when audio ends
+  player.addEventListener('ended', () => {
+    if (activeRow) {
+      activeRow.querySelector('.play-icon i').className = 'bi bi-play-circle';
+      activeRow.classList.remove('active');
+      activeRow = null;
+    }
+  });
+</script>
 {% endblock %}
