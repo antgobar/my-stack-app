@@ -21,7 +21,7 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
         <a class="navbar-brand fw-bold" href="/">
-            <i class="bi bi-stack me-2"></i>MY Stack App
+            <i class="bi bi-music-note-beamed me-2"></i>MySpot
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
@@ -35,23 +35,19 @@
 </nav>
 
 <main class="container my-4">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% for category, message in (messages or []) %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
 
     {% block content %}{% endblock %}
 </main>
 
 <footer class="bg-light border-top py-3 mt-auto">
     <div class="container text-center text-muted small">
-        MY Stack App
+        MySpot
     </div>
 </footer>
 

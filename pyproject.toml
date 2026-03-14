@@ -1,7 +1,7 @@
 [project]
 name = "my-stack-app"
 version = "0.1.0"
-description = "MY Stack App — FastAPI + SQLModel + Postgres + Redis"
+description = "MySpot — Spotify clone built with FastAPI + SQLModel + Postgres + Redis"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.115.0",
