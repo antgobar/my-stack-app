@@ -79,22 +79,39 @@
   const nowArtist = document.getElementById('now-artist');
   let activeRow = null;
 
+  function setIcon(row, playing) {
+    row.querySelector('.play-icon i').className = playing ? 'bi bi-pause-circle' : 'bi bi-play-circle';
+  }
+
   document.querySelectorAll('.track-row').forEach(row => {
     row.addEventListener('click', () => {
       const src    = row.dataset.src;
       const title  = row.dataset.title;
       const artist = row.dataset.artist;
 
-      // highlight active row
+      // clicking the currently active row — toggle play/pause
+      if (row === activeRow) {
+        if (player.paused) {
+          player.play();
+          setIcon(row, true);
+          row.classList.add('active');
+        } else {
+          player.pause();
+          setIcon(row, false);
+          row.classList.remove('active');
+        }
+        return;
+      }
+
+      // switching to a different track
       if (activeRow) {
         activeRow.classList.remove('active');
-        activeRow.querySelector('.play-icon i').className = 'bi bi-play-circle';
+        setIcon(activeRow, false);
       }
       row.classList.add('active');
-      row.querySelector('.play-icon i').className = 'bi bi-pause-circle';
+      setIcon(row, true);
       activeRow = row;
 
-      // load and play
       player.src = src;
       player.play();
 
@@ -107,7 +124,7 @@
   // sync icon when audio ends
   player.addEventListener('ended', () => {
     if (activeRow) {
-      activeRow.querySelector('.play-icon i').className = 'bi bi-play-circle';
+      setIcon(activeRow, false);
       activeRow.classList.remove('active');
       activeRow = null;
     }
