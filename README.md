@@ -40,6 +40,16 @@ uv run uvicorn app.main:app --reload
 App: http://localhost:8000  
 API docs: http://localhost:8000/docs
 
+## Makefile
+
+| Command     | Description                          |
+|-------------|--------------------------------------|
+| `make run`  | Start the dev server on port 8000    |
+| `make test` | Run all tests (verbose)              |
+| `make lint` | Check code with Ruff                 |
+| `make format` | Format code with Ruff              |
+| `make fix`  | Auto-fix lint issues and format code |
+
 ## Tests
 
 ```bash

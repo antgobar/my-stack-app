@@ -26,8 +26,8 @@
 
   .track-row { cursor: pointer; }
   .track-row.active { background-color: #e8f4ff !important; }
-  .track-row .play-icon { transition: color .15s; }
-  .track-row:hover .play-icon { color: #0d6efd !important; }
+  .track-row:hover .play-icon,
+  .track-row.active .play-icon { opacity: 1 !important; }
 </style>
 {% endblock %}
 
@@ -44,9 +44,22 @@
             <div class="list-group-item list-group-item-action track-row d-flex align-items-center gap-3 py-3"
                  data-src="/audio/{{ track.file_path }}"
                  data-title="{{ track.track_name }}"
-                 data-artist="{{ track.artist_name }}">
-                <div class="flex-shrink-0 text-secondary fs-4 play-icon">
-                    <i class="bi bi-play-circle"></i>
+                 data-artist="{{ track.artist_name }}"
+                 data-cover="{% if track.album_cover_path %}/covers/{{ track.album_cover_path }}{% endif %}">
+                <div class="flex-shrink-0 position-relative" style="width:48px;height:48px;">
+                    {% if track.album_cover_path %}
+                    <img src="/covers/{{ track.album_cover_path }}" alt="cover"
+                         class="rounded" style="width:48px;height:48px;object-fit:cover;">
+                    {% else %}
+                    <div class="rounded bg-secondary d-flex align-items-center justify-content-center"
+                         style="width:48px;height:48px;">
+                        <i class="bi bi-music-note text-white"></i>
+                    </div>
+                    {% endif %}
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center
+                                rounded play-icon text-white" style="background:rgba(0,0,0,0.4);opacity:0;transition:opacity .15s;">
+                        <i class="bi bi-play-circle fs-4"></i>
+                    </div>
                 </div>
                 <div class="flex-grow-1 min-width-0">
                     <div class="fw-semibold text-truncate">{{ track.track_name }}</div>
@@ -63,6 +76,8 @@
 
 <!-- Sticky player bar -->
 <div id="player-bar">
+    <img id="now-cover" src="" alt="cover"
+         class="rounded flex-shrink-0" style="width:48px;height:48px;object-fit:cover;display:none;">
     <div class="flex-shrink-0">
         <div id="now-title" class="fw-semibold small text-truncate" style="max-width:200px"></div>
         <div id="now-artist" class="text-muted small text-truncate" style="max-width:200px"></div>
@@ -85,13 +100,14 @@
   const bar       = document.getElementById('player-bar');
   const nowTitle  = document.getElementById('now-title');
   const nowArtist = document.getElementById('now-artist');
+  const nowCover  = document.getElementById('now-cover');
   const btnPrev   = document.getElementById('btn-prev');
   const btnNext   = document.getElementById('btn-next');
   const rows      = Array.from(document.querySelectorAll('.track-row'));
   let activeRow   = null;
 
   function setIcon(row, playing) {
-    row.querySelector('.play-icon i').className = playing ? 'bi bi-pause-circle' : 'bi bi-play-circle';
+    row.querySelector('.play-icon i').className = playing ? 'bi bi-pause-circle fs-4' : 'bi bi-play-circle fs-4';
   }
 
   function playRow(row) {
@@ -108,6 +124,15 @@
 
     nowTitle.textContent  = row.dataset.title;
     nowArtist.textContent = row.dataset.artist;
+
+    const cover = row.dataset.cover;
+    if (cover) {
+      nowCover.src = cover;
+      nowCover.style.display = 'block';
+    } else {
+      nowCover.style.display = 'none';
+    }
+
     bar.classList.add('visible');
 
     btnPrev.disabled = rows.indexOf(row) === 0;

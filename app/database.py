@@ -1,3 +1,4 @@
+import random
 from collections.abc import Generator
 from pathlib import Path
 
@@ -11,6 +12,7 @@ engine = create_engine(
 )
 
 AUDIO_DIR = Path("Audio")
+COVERS_DIR = Path("AlbumCovers")
 
 
 def create_db_and_tables() -> None:
@@ -20,16 +22,16 @@ def create_db_and_tables() -> None:
 def seed_tracks() -> None:
     from app.models import Track  # local import to avoid circular deps at module load
 
+    covers = (
+        sorted(COVERS_DIR.glob("*.png"))
+        + sorted(COVERS_DIR.glob("*.jpg"))
+        + sorted(COVERS_DIR.glob("*.jpeg"))
+    )
+
     with Session(engine) as session:
         for f in sorted(AUDIO_DIR.glob("*.mp3")):
             file_path = f.name
             existing = session.exec(select(Track).where(Track.file_path == file_path)).first()
-            if existing:
-                continue
-
-            parts = f.stem.split(" - ", 1)
-            artist = parts[0] if len(parts) == 2 else "Unknown"
-            title = parts[1] if len(parts) == 2 else parts[0]
 
             cover_path = None
             for ext in (".jpg", ".jpeg", ".png", ".webp"):
@@ -38,11 +40,31 @@ def seed_tracks() -> None:
                     cover_path = candidate.name
                     break
 
-            session.add(Track(track_name=title, artist_name=artist, file_path=file_path, album_cover_path=cover_path))
+            if cover_path is None and covers:
+                cover_path = random.choice(covers).name
+
+            if existing:
+                if existing.album_cover_path is None and cover_path:
+                    existing.album_cover_path = cover_path
+                    session.add(existing)
+                continue
+
+            parts = f.stem.split(" - ", 1)
+            artist = parts[0] if len(parts) == 2 else "Unknown"
+            title = parts[1] if len(parts) == 2 else parts[0]
+
+            session.add(
+                Track(
+                    track_name=title,
+                    artist_name=artist,
+                    file_path=file_path,
+                    album_cover_path=cover_path,
+                )
+            )
 
         session.commit()
 
 
-def get_session() -> Generator[Session, None, None]:
+def get_session() -> Generator[Session]:
     with Session(engine) as session:
         yield session

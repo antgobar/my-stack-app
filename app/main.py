@@ -27,6 +27,7 @@ app = FastAPI(
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/audio", StaticFiles(directory="Audio"), name="audio")
+app.mount("/covers", StaticFiles(directory="AlbumCovers"), name="covers")
 
 templates = Jinja2Templates(directory="app/templates")
 
