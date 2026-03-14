@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
     debug: bool = True
 
-    database_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/mystack"
+    database_url: str = "sqlite:///./myspot.db"
     redis_url: str = "redis://localhost:6379/0"
 
 

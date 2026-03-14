@@ -42,15 +42,15 @@
         <div class="list-group shadow-sm" id="track-list">
             {% for track in tracks %}
             <div class="list-group-item list-group-item-action track-row d-flex align-items-center gap-3 py-3"
-                 data-src="/audio/{{ track.filename }}"
-                 data-title="{{ track.title }}"
-                 data-artist="{{ track.artist }}">
+                 data-src="/audio/{{ track.file_path }}"
+                 data-title="{{ track.track_name }}"
+                 data-artist="{{ track.artist_name }}">
                 <div class="flex-shrink-0 text-secondary fs-4 play-icon">
                     <i class="bi bi-play-circle"></i>
                 </div>
                 <div class="flex-grow-1 min-width-0">
-                    <div class="fw-semibold text-truncate">{{ track.title }}</div>
-                    <div class="small text-muted text-truncate">{{ track.artist }}</div>
+                    <div class="fw-semibold text-truncate">{{ track.track_name }}</div>
+                    <div class="small text-muted text-truncate">{{ track.artist_name }}</div>
                 </div>
             </div>
             {% endfor %}
