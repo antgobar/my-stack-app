@@ -113,9 +113,54 @@ uv run ruff format .     # format
 | `GET` | `/health` | Health check |
 | `GET` | `/docs` | Auto-generated OpenAPI docs |
 
-## Deployment (in progress)
+## Infrastructure (AWS Fargate)
 
-AWS Fargate deployment is currently being built. The target architecture is a containerised FastAPI service running on ECS Fargate behind an Application Load Balancer.
+The app deploys to AWS Fargate via CDK (TypeScript). All infrastructure lives in `infrastructure/`.
+
+### Architecture
+
+| Component | Detail |
+|---|---|
+| VPC | 2 AZs, public subnets only, no NAT gateway |
+| ECS Cluster | Fargate launch type |
+| Fargate Task | 0.25 vCPU / 512 MB, public IP |
+| Load Balancer | Internet-facing ALB, health check on `/health` |
+| Container | Multi-stage Docker build, non-root user, gunicorn + uvicorn |
+| Data | Ephemeral SQLite + media baked into image, seeded on startup |
+
+### Prerequisites
+
+- Node.js 24+
+- AWS CLI configured with credentials
+- Docker running (CDK builds the image locally)
+
+### Deploy
+
+```bash
+cd infrastructure
+npm install
+npx cdk bootstrap   # one-time per account/region
+npx cdk deploy
+```
+
+The ALB DNS name is printed after deploy.
+
+### Infrastructure Tests
+
+```bash
+cd infrastructure
+npx jest              # run all tests (snapshot + assertions)
+npx jest -u           # update snapshots after intentional changes
+```
+
+### Estimated Cost
+
+| Resource | Monthly |
+|---|---|
+| Fargate (0.25 vCPU, 512 MB) | ~$9 |
+| ALB | ~$16 |
+| NAT Gateway | $0 (public subnets only) |
+| **Total** | **~$25** |
 
 ## Given More Time
 
