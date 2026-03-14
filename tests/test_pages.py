@@ -56,3 +56,20 @@ def test_favourites_excludes_non_favourites(client: TestClient, track_factory):
     body = response.text
     assert "Loved Track" in body
     assert "Not Loved Track" not in body
+
+
+def test_queue_page_empty(client: TestClient):
+    response = client.get("/queue")
+    assert response.status_code == 200
+    assert "Your queue is empty." in response.text
+
+
+def test_queue_page_ok(client: TestClient, track_factory, queue_item_factory):
+    track = track_factory(track_name="Punk", artist_name="HoliznaCC0", file_path="punk.mp3")
+    queue_item_factory(track_id=track.id)
+
+    response = client.get("/queue")
+    assert response.status_code == 200
+    body = response.text
+    assert "Punk" in body
+    assert "HoliznaCC0" in body
