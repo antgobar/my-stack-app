@@ -19,25 +19,24 @@
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
+<nav class="navbar navbar-dark bg-dark">
+    <div class="container d-flex align-items-center gap-4">
         <a class="navbar-brand fw-bold" href="/">
             <i class="bi bi-music-note-beamed me-2"></i>MySpot
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="/"><i class="bi bi-music-note-list me-1"></i>Tracks</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/favourites"><i class="bi bi-heart me-1"></i>Favourites</a>
-                </li>
-                {% block nav_items %}{% endblock %}
-            </ul>
-        </div>
+        <ul class="nav nav-underline">
+            <li class="nav-item">
+                <a class="nav-link text-white{% if request.url.path == '/' %} active{% endif %}" href="/">
+                    <i class="bi bi-music-note-list me-1"></i>Tracks
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-white{% if request.url.path == '/favourites' %} active{% endif %}" href="/favourites">
+                    <i class="bi bi-heart me-1"></i>Favourites
+                </a>
+            </li>
+            {% block nav_items %}{% endblock %}
+        </ul>
     </div>
 </nav>
 
