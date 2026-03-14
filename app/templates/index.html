@@ -4,19 +4,28 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8 text-center py-5">
-        <h1 class="display-5 fw-bold mb-3">MySpot</h1>
-        <p class="lead text-muted mb-4">
-            Your music, your way.
-        </p>
-        <div class="d-flex gap-2 justify-content-center">
-            <a href="/docs" class="btn btn-primary">
-                <i class="bi bi-file-earmark-code me-1"></i> API Docs
-            </a>
-            <a href="/health" class="btn btn-outline-secondary">
-                <i class="bi bi-heart-pulse me-1"></i> Health Check
-            </a>
+    <div class="col-lg-8">
+        <h1 class="display-6 fw-bold mb-4">
+            <i class="bi bi-music-note-list me-2"></i>Tracks
+        </h1>
+
+        {% if tracks %}
+        <div class="list-group shadow-sm">
+            {% for track in tracks %}
+            <div class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3">
+                <div class="flex-shrink-0 text-secondary fs-4">
+                    <i class="bi bi-music-note-beamed"></i>
+                </div>
+                <div class="flex-grow-1 min-width-0">
+                    <div class="fw-semibold text-truncate">{{ track.title }}</div>
+                    <div class="small text-muted text-truncate">{{ track.artist }}</div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
+        {% else %}
+        <p class="text-muted">No tracks found.</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
