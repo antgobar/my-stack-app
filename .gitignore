@@ -25,7 +25,6 @@ build/
 Thumbs.db
 
 # Data
-# Audio/
-# AlbumCovers/
-# myspot.db
-tmp/
+Audio/
+AlbumCovers/
+myspot.db
